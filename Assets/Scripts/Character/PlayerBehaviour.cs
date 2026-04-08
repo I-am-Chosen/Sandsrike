@@ -43,7 +43,8 @@ namespace HEAVYART.TopDownShooter.Netcode
             //Camera and aiming
             plane = new Plane(Vector3.up, weaponControlSystem.lineOfSightTransform.localPosition);
             mainCamera = Camera.main;
-            mainCamera.GetComponent<GameCameraController>().ActivateCameraMovement();
+            if (IsOwner && mainCamera != null)
+                mainCamera.GetComponent<GameCameraController>()?.ActivateCameraMovement();
 
             //Settings
             int modelIndex = identityControl.spawnParameters.modelIndex;
@@ -164,7 +165,7 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         public override void OnDestroy()
         {
-            inputActions.Disable();
+            inputActions?.Disable();
         }
     }
 }

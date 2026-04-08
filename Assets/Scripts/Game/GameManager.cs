@@ -131,14 +131,16 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         /// <summary>
         /// Returns expected player count depending on connection mode:
-        ///   - Dedicated server: uses DedicatedServerBootstrap.MaxPlayers (set via CLI / SO)
+        ///   - Dedicated server: 1 (start immediately, bots fill the rest)
         ///   - Offline / Demo:   always 1
         ///   - Lobby (Relay):    number of players in the Unity Lobby
         /// </summary>
         private int GetExpectedPlayersCount()
         {
+            // Dedicated server: start as soon as at least 1 player connects.
+            // Bots will spawn once the game reaches ActiveGame state.
             if (DedicatedServerBootstrap.IsRunning)
-                return DedicatedServerBootstrap.MaxPlayers;
+                return 1;
 
             if (LobbyManager.Instance == null || LobbyManager.Instance.isOfflineMode)
                 return 1;

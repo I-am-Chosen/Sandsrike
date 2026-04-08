@@ -20,17 +20,23 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         public void SubscribeOnNetworkEvents()
         {
-            //On host prepared scene to load
-            NetworkManager.Singleton.SceneManager.OnSynchronize += (clientId) =>
+            var sm = NetworkManager.Singleton?.SceneManager;
+            if (sm == null)
+            {
+                Debug.LogWarning("[SceneLoadManager] SceneManager is null — cannot subscribe to network scene events.");
+                return;
+            }
+
+            //On host prepared scene to load (OnSynchronize fires before OnClientConnectedCallback)
+            sm.OnSynchronize += (clientId) =>
             {
                 //Works on client side only
                 if (NetworkManager.Singleton.LocalClientId == clientId)
                     SceneManager.LoadScene("LoadingScene");
-
             };
 
             //On host loading scene
-            NetworkManager.Singleton.SceneManager.OnLoad += (clientId, sceneName, mode, sceneLoadOperation) =>
+            sm.OnLoad += (clientId, sceneName, mode, sceneLoadOperation) =>
             {
                 StartCoroutine(ProcessNetworkSceneLoading(sceneLoadOperation));
             };

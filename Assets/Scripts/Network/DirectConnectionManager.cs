@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace HEAVYART.TopDownShooter.Netcode
 {
@@ -29,16 +30,14 @@ namespace HEAVYART.TopDownShooter.Netcode
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoCreate()
         {
-#if UNITY_SERVER
-            return; // Server doesn't need a client connection manager
-#else
+            if (DedicatedServerBootstrap.IsServerBuild) return;
+
             if (FindFirstObjectByType<DirectConnectionManager>() != null)
                 return;
 
             var go = new GameObject("[DirectConnectionManager]");
             DontDestroyOnLoad(go);
             go.AddComponent<DirectConnectionManager>();
-#endif
         }
 
         private void Awake()
@@ -70,12 +69,29 @@ namespace HEAVYART.TopDownShooter.Netcode
         {
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.UseWebSockets = true;
+
+            // Port 443 means the client connects via WSS (WebSocket Secure).
+            // Render.com terminates TLS at the proxy and forwards plain WS to the container.
+            if (serverPort == 443)
+            {
+                transport.UseEncryption = true;
+                transport.SetClientSecrets(serverAddress); // SNI + system root CA verification
+            }
+
             transport.SetConnectionData(serverAddress, serverPort);
 
             Debug.Log($"[DirectConnection] Connecting to {serverAddress}:{serverPort}");
 
-            SceneLoadManager.Instance.SubscribeOnNetworkEvents();
+            // Show loading screen immediately so MainMenu is gone before the network scene loads.
+            // Must happen BEFORE StartClient so the old scene is already unloaded when OnLoad fires.
+            SceneManager.LoadScene("LoadingScene");
+
+            // StartClient initializes NetworkManager.SceneManager synchronously.
             NetworkManager.Singleton.StartClient();
+
+            // Subscribe immediately after StartClient — SceneManager is now initialized,
+            // and OnSynchronize hasn't fired yet (it fires in a later network tick).
+            SceneLoadManager.Instance.SubscribeOnNetworkEvents();
         }
     }
 }

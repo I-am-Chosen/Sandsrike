@@ -31,7 +31,7 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         public void UpdateHealthAmount(float currentHP, float maxHP)
         {
-            healthStatusSlider.value = currentHP / maxHP;
+            healthStatusSlider.value = maxHP > 0f ? currentHP / maxHP : 0f;
         }
 
         public void UpdateHealthBarColor()
