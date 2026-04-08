@@ -37,10 +37,9 @@ services:
       # - key: DEFAULT_MAP
       #   value: "GameScene"
 
-    # Health check on root path.
-    # Placeholder mode: Python HTTP server returns 200 OK immediately.
-    # Production mode: Unity server handles WebSocket upgrade on the same port.
-    healthCheckPath: /
+    # No HTTP health check — Unity WebSocket server doesn't serve plain HTTP.
+    # Render will use TCP port probing: as soon as StartServer() binds port 10000,
+    # the service is considered healthy.
 
     # Keep the server alive — game servers must not spin down
     numInstances: 1
