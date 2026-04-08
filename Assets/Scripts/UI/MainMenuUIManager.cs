@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace HEAVYART.TopDownShooter.Netcode
@@ -15,6 +13,11 @@ namespace HEAVYART.TopDownShooter.Netcode
         [Space]
         public RectTransform waitForPublicGamePopup;
         public RectTransform waitForPrivateGamePopup;
+
+        [Space]
+        [Tooltip("Panel shown while connecting to the dedicated server. " +
+                 "Can reuse waitForPublicGamePopup if left empty.")]
+        public RectTransform connectingToServerPopup;
 
         private void Start()
         {
@@ -63,6 +66,19 @@ namespace HEAVYART.TopDownShooter.Netcode
             startGamePopup.gameObject.SetActive(true);
         }
 
+        /// <summary>
+        /// Show while the client is connecting to the dedicated server.
+        /// Falls back to waitForPublicGamePopup if connectingToServerPopup is not assigned.
+        /// </summary>
+        public void ShowConnectingToServerPopup()
+        {
+            HideAll();
+            RectTransform panel = connectingToServerPopup != null
+                ? connectingToServerPopup
+                : waitForPublicGamePopup;
+            panel.gameObject.SetActive(true);
+        }
+
         private void HideAll()
         {
             mainGamePanel.gameObject.SetActive(false);
@@ -72,6 +88,9 @@ namespace HEAVYART.TopDownShooter.Netcode
             errorPopup.gameObject.SetActive(false);
             waitForPublicGamePopup.gameObject.SetActive(false);
             waitForPrivateGamePopup.gameObject.SetActive(false);
+
+            if (connectingToServerPopup != null)
+                connectingToServerPopup.gameObject.SetActive(false);
         }
 
         private void OnErrorOccurred(string errorText)

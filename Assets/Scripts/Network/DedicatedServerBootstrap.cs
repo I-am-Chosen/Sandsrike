@@ -6,14 +6,12 @@ namespace HEAVYART.TopDownShooter.Netcode
 {
     /// <summary>
     /// Bootstraps the dedicated server on startup.
-    /// Attach to the NetworkManager GameObject in the Boot scene.
     ///
-    /// Activation priority:
-    ///   1. UNITY_SERVER build target (headless Linux build)
-    ///   2. Command-line flag:  -server 1
+    /// Auto-created at runtime — no manual scene setup required.
+    /// Activation: UNITY_SERVER build target OR command-line flag: -server 1
     ///
     /// Command-line arguments (all optional):
-    ///   -port 7777          UDP/WebSocket port to listen on
+    ///   -port 7777          WebSocket port to listen on
     ///   -maxPlayers 10      Max concurrent players per instance
     ///   -map GameScene      Scene name to load on start
     ///
@@ -22,22 +20,52 @@ namespace HEAVYART.TopDownShooter.Netcode
     /// </summary>
     public class DedicatedServerBootstrap : MonoBehaviour
     {
-        [SerializeField] private ushort defaultPort = 7777;
-        [SerializeField] private string defaultMap = "GameScene";
-        [SerializeField] private int defaultMaxPlayers = 10;
+        private const ushort DefaultPort = 7777;
+        private const string DefaultMap = "GameScene";
+        private const int DefaultMaxPlayers = 10;
 
         public static bool IsRunning { get; private set; }
         public static ushort ActivePort { get; private set; }
         public static int MaxPlayers { get; private set; }
 
-        private void Awake()
+        // ── Auto-create at runtime (no scene setup needed) ────────────────────
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoCreate()
         {
 #if UNITY_SERVER
-            Boot();
+            CreateBootstrap();
 #else
-            if (CommandLineHelper.TryGetArgumentValue("server", out _))
-                Boot();
+            if (ShouldRunAsServer())
+                CreateBootstrap();
 #endif
+        }
+
+        private static bool ShouldRunAsServer()
+        {
+            string[] args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length; i++)
+                if (args[i] == "-server" && i + 1 < args.Length && args[i + 1] == "1")
+                    return true;
+            return false;
+        }
+
+        private static void CreateBootstrap()
+        {
+            if (FindFirstObjectByType<DedicatedServerBootstrap>() != null)
+                return; // Already exists in scene
+
+            var go = new GameObject("[DedicatedServerBootstrap]");
+            DontDestroyOnLoad(go);
+            go.AddComponent<DedicatedServerBootstrap>();
+        }
+
+        // ── Lifecycle ──────────────────────────────────────────────────────────
+
+        private void Awake()
+        {
+            if (IsRunning) { Destroy(gameObject); return; } // Guard against duplicates
+            Boot();
         }
 
         private void Boot()
@@ -48,9 +76,6 @@ namespace HEAVYART.TopDownShooter.Netcode
             string map = ResolveMap();
 
             var transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
-
-            // WebSocket transport: runs over TCP, works behind Render.com's load balancer.
-            // The load balancer handles TLS; the container speaks plain WS internally.
             transport.UseWebSockets = true;
             transport.SetConnectionData("0.0.0.0", ActivePort);
 
@@ -60,36 +85,33 @@ namespace HEAVYART.TopDownShooter.Netcode
             SceneLoadManager.Instance.LoadNetworkScene(map);
         }
 
-        // ── Port resolution: env var → CLI arg → default ──────────────────────
+        // ── Config resolution: env var → CLI arg → default ──────────────��─────
 
-        private ushort ResolvePort()
+        private static ushort ResolvePort()
         {
-            // Render.com injects PORT env variable (typically 10000)
             string envPort = System.Environment.GetEnvironmentVariable("PORT");
             if (!string.IsNullOrEmpty(envPort) && ushort.TryParse(envPort, out ushort fromEnv))
                 return fromEnv;
-
             if (CommandLineHelper.TryGetArgumentValue("port", out string portArg)
                 && ushort.TryParse(portArg, out ushort fromArg))
                 return fromArg;
-
-            return defaultPort;
+            return DefaultPort;
         }
 
-        private int ResolveMaxPlayers()
+        private static int ResolveMaxPlayers()
         {
             if (CommandLineHelper.TryGetArgumentValue("maxPlayers", out string arg)
                 && int.TryParse(arg, out int value))
                 return value;
-            return defaultMaxPlayers;
+            return DefaultMaxPlayers;
         }
 
-        private string ResolveMap()
+        private static string ResolveMap()
         {
             if (CommandLineHelper.TryGetArgumentValue("map", out string arg)
                 && !string.IsNullOrEmpty(arg))
                 return arg;
-            return defaultMap;
+            return DefaultMap;
         }
     }
 }
