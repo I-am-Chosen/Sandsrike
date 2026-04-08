@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Sandsrike — Render.com Infrastructure Blueprint
+# Deploy via: Render Dashboard → "New Blueprint" → connect this repo
+#
+# Architecture:
+#   sandsrike-server   — Unity Dedicated Server (WebSocket game server)
+#
+# How it works:
+#   1. GitHub push to 'main' triggers Render to rebuild the Docker image
+#   2. Render starts the container, injects PORT env var
+#   3. DedicatedServerBootstrap reads PORT and starts NetworkManager as Server
+#   4. Clients connect via wss://sandsrike-server.onrender.com (port 443)
+#      Render's load balancer handles TLS → proxies to container WS port
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: sandsrike-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    # Render.com plan — upgrade to 'standard' for production (persistent disk, more RAM)
+    plan: starter
+
+    # Auto-deploy on every push to main
+    autoDeploy: true
+    branch: main
+
+    # Render injects PORT automatically; these are extra runtime values
+    envVars:
+      - key: UNITY_SERVER
+        value: "1"
+      # Optional overrides — remove to use DedicatedServerBootstrap defaults
+      # - key: MAX_PLAYERS
+      #   value: "10"
+      # - key: DEFAULT_MAP
+      #   value: "GameScene"
+
+    # Health check — Render uses HTTP; Unity server logs a ready message.
+    # For a proper health endpoint, add a lightweight HTTP listener in Unity
+    # (e.g., via System.Net.HttpListener) that returns 200 OK.
+    healthCheckPath: /health
+
+    # Keep the server alive (game servers should not sleep)
+    numInstances: 1

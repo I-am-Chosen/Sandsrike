@@ -1,0 +1,98 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Sandsrike — Build Unity Dedicated Server & Push Docker Image
+#
+# Trigger: push to 'main' (or manually via workflow_dispatch)
+#
+# Required GitHub Secrets:
+#   UNITY_LICENSE      — contents of your Unity .ulf license file
+#   UNITY_EMAIL        — Unity account email
+#   UNITY_PASSWORD     — Unity account password
+#   DOCKER_USERNAME    — Docker Hub username
+#   DOCKER_TOKEN       — Docker Hub access token
+#
+# The built image is pushed to:
+#   docker.io/<DOCKER_USERNAME>/sandsrike-server:latest
+#   docker.io/<DOCKER_USERNAME>/sandsrike-server:<git-sha>
+#
+# Render.com can be configured to pull from Docker Hub instead of
+# building the Dockerfile itself — update render.yaml 'image' field if so.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Build Server & Push Image
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-unity:
+    name: Build Unity Dedicated Server (Linux x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-DedicatedServer-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-DedicatedServer-
+            Library-
+
+      # game-ci/unity-builder handles Unity activation + headless build
+      - name: Build Dedicated Server
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: 6000.4.1f1
+          targetPlatform: StandaloneLinux64
+          buildMethod: ''                 # uses default build (all scenes in BuildSettings)
+          buildName: Sandsrike
+          buildsPath: ServerBuild
+          # Dedicated Server build target sets UNITY_SERVER define automatically
+          customParameters: -standaloneBuildSubtarget Server
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandsrike-server-build
+          path: ServerBuild/
+          retention-days: 7
+
+  docker:
+    name: Build & Push Docker Image
+    needs: build-unity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Unity build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sandsrike-server-build
+          path: ServerBuild/
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/sandsrike-server:latest
+            ${{ secrets.DOCKER_USERNAME }}/sandsrike-server:${{ github.sha }}

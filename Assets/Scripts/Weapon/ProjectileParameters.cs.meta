@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: d2e3d6386a200cd49a6bd42f82886e32
+AssetOrigin:
+  serializedVersion: 1
+  productId: 264802
+  packageName: Multiplayer Top-Down Shooter Template (Netcode, Lobby, Relay)
+  packageVersion: 1.1.1
+  assetPath: Assets/HEAVYART/Top-Down Shooter Template (Netcode, Lobby, Relay)/Scripts/Weapon/ProjectileParameters.cs
+  uploadId: 823238

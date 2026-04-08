@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: ca662e00143f65c4a8ef7ee17e1e9fda
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 264802
+  packageName: Multiplayer Top-Down Shooter Template (Netcode, Lobby, Relay)
+  packageVersion: 1.1.1
+  assetPath: Assets/HEAVYART/Top-Down Shooter Template (Netcode, Lobby, Relay)/ScriptableObjects/Drop
+    Configs/[Shotgun] Change weapon.asset
+  uploadId: 823238

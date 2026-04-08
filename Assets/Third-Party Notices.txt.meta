@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0251179f1dc58a84498597f06bfe7af4
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 264802
+  packageName: Multiplayer Top-Down Shooter Template (Netcode, Lobby, Relay)
+  packageVersion: 1.1.1
+  assetPath: Assets/HEAVYART/Top-Down Shooter Template (Netcode, Lobby, Relay)/Third-Party
+    Notices.txt
+  uploadId: 823238
