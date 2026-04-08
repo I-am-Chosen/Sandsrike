@@ -205,6 +205,8 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         private void FixedUpdate()
         {
+            if (dataControl == null || !isLobbyAvailable) return;
+
             //Wait until lobby becomes full and ready to start game
             if (isLobbyOwner == true && players.Count == maxPlayers)
             {

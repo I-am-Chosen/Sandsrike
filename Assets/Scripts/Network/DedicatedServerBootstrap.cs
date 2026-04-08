@@ -30,15 +30,23 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         // ── Auto-create at runtime (no scene setup needed) ────────────────────
 
+        // BeforeSceneLoad: set IsRunning early so other components' Start() can read it.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void SetServerFlag()
+        {
+#if UNITY_SERVER
+            IsRunning = true;
+#else
+            if (ShouldRunAsServer()) IsRunning = true;
+#endif
+        }
+
+        // AfterSceneLoad: NetworkManager is now in the scene, safe to boot.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoCreate()
         {
-#if UNITY_SERVER
+            if (!IsRunning) return;
             CreateBootstrap();
-#else
-            if (ShouldRunAsServer())
-                CreateBootstrap();
-#endif
         }
 
         private static bool ShouldRunAsServer()
