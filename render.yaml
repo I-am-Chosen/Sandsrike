@@ -37,10 +37,10 @@ services:
       # - key: DEFAULT_MAP
       #   value: "GameScene"
 
-    # Health check — Render uses HTTP; Unity server logs a ready message.
-    # For a proper health endpoint, add a lightweight HTTP listener in Unity
-    # (e.g., via System.Net.HttpListener) that returns 200 OK.
-    healthCheckPath: /health
+    # Health check on root path.
+    # Placeholder mode: Python HTTP server returns 200 OK immediately.
+    # Production mode: Unity server handles WebSocket upgrade on the same port.
+    healthCheckPath: /
 
-    # Keep the server alive (game servers should not sleep)
+    # Keep the server alive — game servers must not spin down
     numInstances: 1
