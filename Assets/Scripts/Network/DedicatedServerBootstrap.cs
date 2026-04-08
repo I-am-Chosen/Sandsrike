@@ -44,7 +44,10 @@ namespace HEAVYART.TopDownShooter.Netcode
         private static void SetServerFlag()
         {
 #if UNITY_SERVER
-            IsServerBuild = true;
+            // In editor with Dedicated Server build target, only run as server
+            // when actually headless (batchmode) or explicitly forced via CLI.
+            if (Application.isBatchMode || ShouldRunAsServer())
+                IsServerBuild = true;
 #else
             IsServerBuild = ShouldRunAsServer();
 #endif
