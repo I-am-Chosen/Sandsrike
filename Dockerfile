@@ -52,7 +52,7 @@ RUN printf '%s\n' \
     'port = int(os.environ.get(\"PORT\", 7777))' \
     'class H(http.server.BaseHTTPRequestHandler):' \
     '    def do_GET(self):' \
-    '        body = b\"Sandsrike Game Server — awaiting Unity build\"' \
+    '        body = b\"Sandsrike Game Server - awaiting Unity build\"' \
     '        self.send_response(200)' \
     '        self.send_header(\"Content-Length\", len(body))' \
     '        self.end_headers()' \
