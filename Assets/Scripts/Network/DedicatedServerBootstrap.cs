@@ -24,28 +24,37 @@ namespace HEAVYART.TopDownShooter.Netcode
         private const string DefaultMap = "GameScene";
         private const int DefaultMaxPlayers = 10;
 
+        /// <summary>True once Boot() has been called and the server is accepting connections.</summary>
         public static bool IsRunning { get; private set; }
+
+        /// <summary>
+        /// True as soon as we know this is a server process (set in BeforeSceneLoad,
+        /// before any MonoBehaviour.Start() runs). Use this to skip lobby init early.
+        /// </summary>
+        public static bool IsServerBuild { get; private set; }
+
         public static ushort ActivePort { get; private set; }
         public static int MaxPlayers { get; private set; }
 
         // ── Auto-create at runtime (no scene setup needed) ────────────────────
 
-        // BeforeSceneLoad: set IsRunning early so other components' Start() can read it.
+        // BeforeSceneLoad: flag the process as server so other Start() methods can skip lobby init.
+        // Does NOT set IsRunning — Boot() hasn't run yet.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void SetServerFlag()
         {
 #if UNITY_SERVER
-            IsRunning = true;
+            IsServerBuild = true;
 #else
-            if (ShouldRunAsServer()) IsRunning = true;
+            IsServerBuild = ShouldRunAsServer();
 #endif
         }
 
-        // AfterSceneLoad: NetworkManager is now in the scene, safe to boot.
+        // AfterSceneLoad: NetworkManager is now in the scene, safe to create the bootstrap.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoCreate()
         {
-            if (!IsRunning) return;
+            if (!IsServerBuild) return;
             CreateBootstrap();
         }
 
@@ -93,7 +102,7 @@ namespace HEAVYART.TopDownShooter.Netcode
             SceneLoadManager.Instance.LoadNetworkScene(map);
         }
 
-        // ── Config resolution: env var → CLI arg → default ──────────────��─────
+        // ── Config resolution: env var → CLI arg → default ───────────────────
 
         private static ushort ResolvePort()
         {

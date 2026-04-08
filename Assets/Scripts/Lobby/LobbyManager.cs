@@ -35,7 +35,7 @@ namespace HEAVYART.TopDownShooter.Netcode
         {
             // Dedicated server manages its own connection lifecycle via DedicatedServerBootstrap.
             // LobbyManager has nothing to initialize in that context.
-            if (DedicatedServerBootstrap.IsRunning)
+            if (DedicatedServerBootstrap.IsServerBuild)
             {
                 isOfflineMode = true;
                 return;
@@ -216,7 +216,7 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         public async void QuitLobby()
         {
-            if (DedicatedServerBootstrap.IsRunning || dataControl == null)
+            if (DedicatedServerBootstrap.IsServerBuild || dataControl == null)
                 return;
 
             if (isLobbyAvailable == false)
