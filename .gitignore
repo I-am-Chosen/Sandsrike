@@ -23,9 +23,9 @@ sysinfo.txt
 *.stackdump
 
 # ─── Server Build ─────────────────────────────────────────────────────────────
-# Track only the placeholder marker; the actual binary is produced by CI
-ServerBuild/*
-!ServerBuild/.gitkeep
+# Track the dedicated server build (deployed to Render.com via Docker)
+ServerBuild/build.log
+ServerBuild/*_DoNotShip/
 
 # ─── Visual Studio / Rider ───────────────────────────────────────────────────
 .vs/
