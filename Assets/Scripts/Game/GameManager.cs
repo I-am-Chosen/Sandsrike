@@ -25,6 +25,9 @@ namespace HEAVYART.TopDownShooter.Netcode
         public double gameStartTime { get; private set; }
         public double gameEndTime { get; private set; }
 
+        /// <summary>Server time when the first player connected. Used for lobby wait timeout.</summary>
+        private double _firstPlayerJoinTime;
+
         public Dictionary<ulong, LeaderboardUserProfile> leaderboard = new Dictionary<ulong, LeaderboardUserProfile>();
 
         private void Awake()
@@ -77,8 +80,16 @@ namespace HEAVYART.TopDownShooter.Netcode
                 int connectedPlayersCount = userControl.playerSceneObjects.Count;
                 int expectedPlayersCount = GetExpectedPlayersCount();
 
-                //Room is full
-                if (connectedPlayersCount > 0 && connectedPlayersCount == expectedPlayersCount)
+                // Track when the first player joins (for lobby timeout)
+                if (connectedPlayersCount > 0 && _firstPlayerJoinTime == 0)
+                    _firstPlayerJoinTime = NetworkManager.ServerTime.Time;
+
+                // Start when: room is full OR lobby wait timeout (30s) expired with at least 1 player
+                bool roomFull = connectedPlayersCount > 0 && connectedPlayersCount >= expectedPlayersCount;
+                bool lobbyTimeout = _firstPlayerJoinTime > 0
+                    && NetworkManager.ServerTime.Time - _firstPlayerJoinTime >= 30.0;
+
+                if (roomFull || lobbyTimeout)
                 {
                     float networkDelay = 0.5f;
 
@@ -90,8 +101,11 @@ namespace HEAVYART.TopDownShooter.Netcode
 
                     double endTime = startTime + SettingsManager.Instance.gameplay.gameDuration;
 
-                    //Broadcast start countdown command
-                    if (IsServer) StartCountdownRpc(startTime, endTime);
+                    if (IsServer)
+                    {
+                        Debug.Log($"[GameManager] Starting game | Players: {connectedPlayersCount}/{expectedPlayersCount} | Reason: {(roomFull ? "room full" : "lobby timeout")}");
+                        StartCountdownRpc(startTime, endTime);
+                    }
                 }
             }
 
@@ -131,16 +145,16 @@ namespace HEAVYART.TopDownShooter.Netcode
 
         /// <summary>
         /// Returns expected player count depending on connection mode:
-        ///   - Dedicated server: 1 (start immediately, bots fill the rest)
+        ///   - Dedicated server: MaxPlayers (but lobby timeout will start the game earlier)
         ///   - Offline / Demo:   always 1
         ///   - Lobby (Relay):    number of players in the Unity Lobby
         /// </summary>
         private int GetExpectedPlayersCount()
         {
-            // Dedicated server: start as soon as at least 1 player connects.
-            // Bots will spawn once the game reaches ActiveGame state.
+            // Dedicated server: wait for MaxPlayers, but the 30s lobby timeout
+            // in FixedUpdate will start the game if fewer players join.
             if (DedicatedServerBootstrap.IsRunning)
-                return 1;
+                return DedicatedServerBootstrap.MaxPlayers;
 
             if (LobbyManager.Instance == null || LobbyManager.Instance.isOfflineMode)
                 return 1;
